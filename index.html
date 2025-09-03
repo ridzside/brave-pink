@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Foto Duotone Effects</title>
+  <style>
+    @font-face {
+      font-family: 'SouthernBarn';
+      src: url("fonts/ZF2334That'sAllRight-Regular.woff") format('opentype');
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    body {
+      font-family: 'SouthernBarn', sans-serif;
+      background: #fff;
+      color: #111;
+      text-align: center;
+      padding: 20px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    h1 { margin-bottom: 20px; color: #222; }
+
+    .canvas-wrapper {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      max-width: 500px;
+      width: 100%;
+      height: 350px;
+      border: 2px solid #aaa;
+      border-radius: 12px;
+      margin: 0 auto;
+      background: #f5f5f5;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .upload-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+      color: #666;
+      transition: all 0.3s ease;
+    }
+
+    .upload-box:hover { background: #eee; color: #f285b9; }
+    .upload-box svg { width: 40px; height: 40px; margin-bottom: 10px; stroke: currentColor; }
+    .upload-box span { font-size: 14px; }
+    #upload { display: none; }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 10px;
+      display: none;
+    }
+
+    .controls {
+      margin-top: 15px;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      color: #fff;
+      font-family: inherit;
+    }
+
+    .invert { background: #f285b9; color: #111; }
+    .save   { background: #00aaff; display: none; }
+    .grain  { background: #888; }
+    .reset  { background: #555; }
+
+    .effect-select {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .effect-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #ddd;
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s;
+      color: #111;
+      font-family: inherit;
+    }
+
+    .effect-option span { font-size: 12px; } /* ukuran teks tombol warna diperkecil */
+    .effect-option:hover { background: #ccc; }
+
+    .color-bar {
+      display: flex;
+      width: 40px;
+      height: 16px;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .color-bar div { flex: 1; }
+    .selected { outline: 2px solid #f285b9; }
+
+    /* Info warna */
+    .info-section {
+      max-width: 700px;
+      margin: 40px auto 0;
+      text-align: left;
+      font-size: 15px;
+      line-height: 1.6;
+      color: #333;
+      display: none;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+    }
+
+    .info-section.visible { opacity: 1; }
+    .info-section h2 { font-size: 18px; margin-top: 20px; color: #111; }
+
+    footer {
+      margin-top: 40px;
+      font-size: 14px;
+      color: #555;
+    }
+
+    footer a { color: #00aaff; text-decoration: none; font-weight: bold; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div>
+    <h1>Foto Duotone Effects</h1>
+
+    <div class="canvas-wrapper">
+      <label for="upload" class="upload-box" id="uploadBox">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <path d="M12 16V8m0 0l-4 4m4-4l4 4M20 16v5H4v-5" 
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Klik untuk upload foto</span>
+      </label>
+      <input type="file" id="upload" accept="image/*">
+      <canvas id="canvas"></canvas>
+    </div>
+
+    <!-- Pilihan efek -->
+    <div class="controls">
+      <div class="effect-select" id="effectSelect">
+        <div class="effect-option selected" data-effect="pinkGreen">
+          <div class="color-bar">
+            <div style="background:#165f34"></div>
+            <div style="background:#f285b9"></div>
+          </div>
+          <span>Brave Pink & Hero Green</span>
+        </div>
+        <div class="effect-option" data-effect="bluePink">
+          <div class="color-bar">
+            <div style="background:#00188F"></div>
+            <div style="background:#f285b9"></div>
+          </div>
+          <span>Resistance Blue & Brave Pink</span>
+        </div>
+        <div class="effect-option" data-effect="greenBlue">
+          <div class="color-bar">
+            <div style="background:#00188F"></div>
+            <div style="background:#32b464"></div> <!-- warna hijau lebih cerah -->
+          </div>
+          <span>Hero Green & Resistance Blue</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tombol -->
+    <div class="controls">
+      <button class="invert" onclick="toggleInvert()">Invert</button>
+      <button class="grain" onclick="toggleGrain()">Grain On</button>
+      <button class="save" onclick="saveImage()">Simpan</button>
+      <button class="reset" onclick="resetUpload()">Ganti Foto</button>
+    </div>
+
+    <!-- Informasi Warna Dinamis -->
+    <div class="info-section" id="infoSection"></div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <p>
+      All processing happens locally in your browser. Your photos never leave your device.
+    </p>
+    <p>
+      developed by 
+      <a href="https://www.instagram.com/ridzverse" target="_blank">@ridzverse</a>
+    </p>
+  </footer>
+
+  <script>
+    const bravePinkText = `
+<h2>Brave Pink</h2>
+Warna pink ini terlahir dari aksi ikonik ibu-ibu berkerudung merah jambu saat demonstrasi 28 Agustus 2025 lalu. 
+Hanya "bersenjatakan" tiang bambu bersematkan bendera Merah Putih, perempuan paruh baya itu tanpa takut menghadapi barisan polisi.
+
+Keberaniannya itu saat berhadapan dengan pasukan cokelat lantas melahirkan julukan brave pink. 
+Sementara selama ini merah jambu kerap dikaitkan dengan feminitas, menurut Color Psychology, rona yang satu ini juga mencerminkan makna cinta, ketenangan, dan optimisme.
+`;
+
+    const heroGreenText = `
+<h2>Hero Green</h2>
+Warna ini terinspirasi dari seragam Affan Kurniawan, seorang pengendara ojek online (ojol) yang menjadi korban anarkisme aparat saat demonstrasi 28 Agustus 2025. 
+Ia dilindas kendaraan taktis Brimob saat hendak mengantarkan pesanan makanan pelanggan.
+
+Kematian Affan kian mendatangkan pilu masyarakat Tanah Air terlebih setelah mengetahui bahwa dirinya merupakan tulang punggung keluarga. 
+Dedikasi Affan dalam menafkahi keluarga di usia yang seharusnya ia tengah sibuk mengenyam pendidikan di bangku perkuliahan membuat dirinya bagaikan seorang pahlawan.
+`;
+
+    const resistanceBlueText = `
+<h2>Resistance Blue</h2>
+Warna biru perlawanan muncul sewaktu riuhnya unjuk rasa RUU Pilkada pada Agustus 2024 silam, 
+terinspirasi dari warna biru TV analog ketika ada peringatan darurat yang identik dengan EAS alarm.
+`;
+
+    const bravePink = [242, 133, 185];
+    const heroGreen = [22, 95, 52];
+    const heroGreenBright = [50, 180, 100]; // hijau lebih cerah
+    const resistanceBlue = [0, 24, 143];
+
+    let invertMode = false;
+    let grainEnabled = true;
+    let originalImage = null;
+    let currentEffect = "pinkGreen";
+
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const uploadBox = document.getElementById('uploadBox');
+    const grainBtn = document.querySelector(".grain");
+    const uploadInput = document.getElementById('upload');
+    const saveBtn = document.querySelector(".save");
+    const infoSection = document.getElementById('infoSection');
+
+    // Upload
+    uploadInput.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+
+      reader.onload = function(event) {
+        const img = new Image();
+        img.onload = function() {
+          uploadBox.style.display = "none";
+          canvas.style.display = "block";
+
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.drawImage(img, 0, 0);
+          originalImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          applyDuotone();
+          saveBtn.style.display = "inline-block";
+        };
+        img.src = event.target.result;
+      };
+
+      if (file) {
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Effect select
+    document.querySelectorAll(".effect-option").forEach(opt => {
+      opt.addEventListener("click", () => {
+        document.querySelectorAll(".effect-option").forEach(o => o.classList.remove("selected"));
+        opt.classList.add("selected");
+        currentEffect = opt.dataset.effect;
+        applyDuotone();
+        showInfo(currentEffect);
+      });
+    });
+
+    function showInfo(effect) {
+      infoSection.style.display = "block";
+      infoSection.classList.remove("visible");
+
+      if (effect === "pinkGreen") {
+        infoSection.innerHTML = bravePinkText + heroGreenText;
+      } else if (effect === "bluePink") {
+        infoSection.innerHTML = resistanceBlueText + bravePinkText;
+      } else if (effect === "greenBlue") {
+        infoSection.innerHTML = heroGreenText + resistanceBlueText;
+      }
+
+      setTimeout(() => infoSection.classList.add("visible"), 10);
+    }
+
+    function applyDuotone() {
+      if (!originalImage) return;
+
+      let imageData = new ImageData(
+        new Uint8ClampedArray(originalImage.data),
+        originalImage.width,
+        originalImage.height
+      );
+      let data = imageData.data;
+
+      let colorDark, colorLight;
+
+      if (currentEffect === "pinkGreen") {
+        colorDark = invertMode ? bravePink : heroGreen;
+        colorLight = invertMode ? heroGreen : bravePink;
+      } else if (currentEffect === "bluePink") {
+        colorDark = invertMode ? bravePink : resistanceBlue;
+        colorLight = invertMode ? resistanceBlue : bravePink;
+      } else if (currentEffect === "greenBlue") {
+        // pakai hijau lebih cerah
+        colorDark = invertMode ? heroGreenBright : resistanceBlue;
+        colorLight = invertMode ? resistanceBlue : heroGreenBright;
+      }
+
+      for (let i = 0; i < data.length; i += 4) {
+        let gray = (data[i] + data[i+1] + data[i+2]) / 3 / 255;
+
+        let r = colorDark[0] * (1 - gray) + colorLight[0] * gray;
+        let g = colorDark[1] * (1 - gray) + colorLight[1] * gray;
+        let b = colorDark[2] * (1 - gray) + colorLight[2] * gray;
+
+        if (grainEnabled) {
+          let noise = (Math.random() - 0.5) * 20;
+          r = Math.min(255, Math.max(0, r + noise));
+          g = Math.min(255, Math.max(0, g + noise));
+          b = Math.min(255, Math.max(0, b + noise));
+        }
+
+        [r, g, b] = boostSaturation(r, g, b, 1.5);
+
+        data[i] = r;
+        data[i+1] = g;
+        data[i+2] = b;
+      }
+
+      ctx.putImageData(imageData, 0, 0);
+    }
+
+    function toggleInvert() {
+      invertMode = !invertMode;
+      applyDuotone();
+    }
+
+    function toggleGrain() {
+      grainEnabled = !grainEnabled;
+      grainBtn.textContent = grainEnabled ? "Grain On" : "Grain Off";
+      applyDuotone();
+    }
+
+    function saveImage() {
+      const link = document.createElement('a');
+      link.download = 'duotone.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+
+    function resetUpload() {
+      canvas.style.display = "none";
+      uploadBox.style.display = "flex";
+      originalImage = null;
+      uploadInput.value = "";
+      uploadInput.click();
+      saveBtn.style.display = "none";
+    }
+
+    function boostSaturation(r, g, b, factor) {
+      r /= 255; g /= 255; b /= 255;
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      let h, s, l = (max + min) / 2;
+
+      if (max === min) {
+        h = s = 0;
+      } else {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+          case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+          case g: h = (b - r) / d + 2; break;
+          case b: h = (r - g) / d + 4; break;
+        }
+        h /= 6;
+      }
+
+      s = Math.min(1, s * factor);
+
+      let q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      let p = 2 * l - q;
+      function hue2rgb(p, q, t) {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1/6) return p + (q - p) * 6 * t;
+        if (t < 1/2) return q;
+        if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+        return p;
+      }
+
+      r = hue2rgb(p, q, h + 1/3);
+      g = hue2rgb(p, q, h);
+      b = hue2rgb(p, q, h - 1/3);
+
+      return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+    }
+
+    // tampilkan info default
+    showInfo("pinkGreen");
+  </script>
+</body>
+</html>
